@@ -11,42 +11,76 @@ export class Gallery extends Component {
     isShowBtn: false,
     isEmpty: false,
     error: null,
-  }
+  };
 
   componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
-    if (prevState.query !== query) {
-      this.getImages(query, page)
+    if (prevState.query !== query || prevState.page !== page) {
+      this.getImages(query, page);
     }
   }
+
   getImages = (query, page) => {
-     ImageService.getImages(query, page).then(response => {
-       console.log(response);
-       this.setState({ images: response.photos });
-    });
-  }
+    this.setState({ isLoading: true });
+    ImageService.getImages(query, page)
+      .then(response => {
+        const { page: currentPage, per_page, photos, total_results } = response;
+        console.log(response);
+
+        if (!photos.length) {
+          this.setState({ isEmpty: true });
+          return;
+        }
+
+        this.setState(prevState => ({
+          images: [...prevState.images, ...photos],
+          isShowBtn: currentPage < Math.ceil(total_results / per_page),
+        }));
+      })
+      .catch(e => this.setState({ error: e.message }))
+      .finally(() => this.setState({ isLoading: false }));
+  };
+
   handlerOnSubmit = value => {
     console.log(value);
-    this.setState({ query: value });
+    this.setState({
+      query: value,
+      page: 1,
+      images: [],
+      isShowBtn: false,
+      isEmpty: false,
+      error: null,
+    });
   };
+
+  handleClickBtn = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
+  };
+
   render() {
-    const { images } = this.state;
+    const { images, isLoading, isEmpty, isShowBtn } = this.state;
     return (
       <>
         <SearchForm onSubmit={this.handlerOnSubmit} />
         <Grid>
-          {images.map(({ id, src:{small}, alt, }) => {
+          {images.map(({ id, src: { small }, alt }) => {
             return (
               <GridItem key={id}>
-                <CardItem >
+                <CardItem>
                   <img src={small} alt={alt} />
                 </CardItem>
               </GridItem>
-            )
-          })
-          }
+            );
+          })}
         </Grid>
-        <Text textAlign="center">Sorry. There are no images ... 😭</Text>
+
+        {isShowBtn && <Button onClick={this.handleClickBtn}>Load more</Button>}
+        {isEmpty && (
+          <Text textAlign="center">Sorry. There are no images ... 😭</Text>
+        )}
+        {isLoading && <Text textAlign="center">Loading ... </Text>}
       </>
     );
   }
