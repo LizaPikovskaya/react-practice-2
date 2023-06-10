@@ -13,10 +13,19 @@ export class Gallery extends Component {
     error: null,
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
+  componentDidUpdate(_, prevState) {
+    const { query, page, images } = this.state;
     if (prevState.query !== query || prevState.page !== page) {
       this.getImages(query, page);
+    }
+
+    if (prevState.images !== images) {
+      setTimeout(() => {
+        window.scrollBy({
+          top: 140 * 3,
+          behavior: 'smooth',
+        });
+      }, 500);
     }
   }
 
